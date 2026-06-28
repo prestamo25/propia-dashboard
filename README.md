@@ -21,7 +21,7 @@ npm run dev                        # http://localhost:3000
 | var | what |
 | --- | --- |
 | `SUPABASE_URL` | Supabase project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | service role key (server-only, **secret**) |
+| `SUPABASE_SECRET_KEY` | a dedicated `sb_secret_…` key (server-only, **secret**, bypasses RLS) |
 | `ADMIN_PASSWORD` | the shared password you type to log in |
 | `SESSION_SECRET` | long random string to sign the cookie (`openssl rand -hex 32`) |
 
