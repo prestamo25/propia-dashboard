@@ -113,3 +113,123 @@ export async function fetchOverview(): Promise<Overview> {
     },
   };
 }
+
+export type Listing = {
+  id: string;
+  name: string | null;
+  type: string | null;
+  transaction: string | null;
+  price: number | null;
+  currency: string | null;
+  state: string | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  address: string | null;
+  source: string | null;
+  created_at: string | null;
+  thumb_url: string | null;
+};
+
+export type BrokerDetail = {
+  id: string;
+  name: string | null;
+  company: string | null;
+  phone: string | null;
+  states: string[];
+  status: string | null;
+  created_at: string | null;
+  last_active: string | null;
+  blocked: boolean;
+  listings: Listing[];
+};
+
+export async function fetchBroker(id: string): Promise<BrokerDetail | null> {
+  const sb = supabaseAdmin();
+
+  const [userRes, authRes, propsRes] = await Promise.all([
+    sb
+      .from("users")
+      .select(
+        "id, name, first_name, last_name, company, phone, states, status, created_at, last_active",
+      )
+      .eq("id", id)
+      .maybeSingle(),
+    sb.auth.admin.getUserById(id),
+    sb
+      .from("properties")
+      .select(
+        "id, name, type, transaction, price, currency, state, bedrooms, bathrooms, address, source, created_at, property_photos(thumb_url, position)",
+      )
+      .eq("user_id", id)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  if (userRes.error) throw userRes.error;
+  if (propsRes.error) throw propsRes.error;
+  if (!userRes.data) return null;
+
+  const u = userRes.data as {
+    id: string;
+    name: string | null;
+    first_name: string | null;
+    last_name: string | null;
+    company: string | null;
+    phone: string | null;
+    states: string[] | null;
+    status: string | null;
+    created_at: string | null;
+    last_active: string | null;
+  };
+
+  const full =
+    [u.first_name, u.last_name].filter(Boolean).join(" ").trim() || u.name || null;
+
+  const listings: Listing[] = (propsRes.data ?? []).map((row) => {
+    const p = row as {
+      id: string;
+      name: string | null;
+      type: string | null;
+      transaction: string | null;
+      price: number | null;
+      currency: string | null;
+      state: string | null;
+      bedrooms: number | null;
+      bathrooms: number | null;
+      address: string | null;
+      source: string | null;
+      created_at: string | null;
+      property_photos: { thumb_url: string; position: number }[] | null;
+    };
+    const photos = [...(p.property_photos ?? [])].sort(
+      (a, b) => a.position - b.position,
+    );
+    return {
+      id: p.id,
+      name: p.name,
+      type: p.type,
+      transaction: p.transaction,
+      price: p.price,
+      currency: p.currency,
+      state: p.state,
+      bedrooms: p.bedrooms,
+      bathrooms: p.bathrooms,
+      address: p.address,
+      source: p.source,
+      created_at: p.created_at,
+      thumb_url: photos[0]?.thumb_url ?? null,
+    };
+  });
+
+  return {
+    id: u.id,
+    name: full,
+    company: u.company,
+    phone: u.phone,
+    states: u.states ?? [],
+    status: u.status,
+    created_at: u.created_at,
+    last_active: u.last_active,
+    blocked: isBanned(authRes.data?.user?.banned_until),
+    listings,
+  };
+}

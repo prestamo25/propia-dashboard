@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { BrokerRow } from "@/lib/data";
-import { blockBroker, unblockBroker } from "@/app/actions";
+import { BlockButton } from "@/components/BlockButton";
 import { avatarColors, fmtDate, initials, relative } from "@/lib/format";
 
 type SortKey = "name" | "inventory" | "created_at" | "last_active";
@@ -37,6 +39,7 @@ function statusMeta(status: string | null) {
 }
 
 export function BrokerTable({ brokers }: { brokers: BrokerRow[] }) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -131,6 +134,7 @@ export function BrokerTable({ brokers }: { brokers: BrokerRow[] }) {
                 Actividad
               </Th>
               <Th align="right">Acciones</Th>
+              <th className="w-8 border-b border-neutral-100" />
             </tr>
           </thead>
           <tbody>
@@ -141,7 +145,8 @@ export function BrokerTable({ brokers }: { brokers: BrokerRow[] }) {
               return (
                 <tr
                   key={b.id}
-                  className="group border-b border-neutral-50 transition-colors last:border-0 hover:bg-neutral-50/70"
+                  onClick={() => router.push(`/broker/${b.id}`)}
+                  className="group cursor-pointer border-b border-neutral-50 transition-colors last:border-0 hover:bg-neutral-50/70"
                 >
                   <Td>
                     <div className="flex items-center gap-3">
@@ -152,7 +157,7 @@ export function BrokerTable({ brokers }: { brokers: BrokerRow[] }) {
                         {initials(b.name)}
                       </span>
                       <div className="min-w-0">
-                        <div className="truncate font-medium text-neutral-900">
+                        <div className="truncate font-medium text-neutral-900 group-hover:text-brand">
                           {b.name ?? "—"}
                         </div>
                         {b.company ? (
@@ -221,14 +226,40 @@ export function BrokerTable({ brokers }: { brokers: BrokerRow[] }) {
                     </span>
                   </Td>
                   <Td align="right">
-                    <BlockCell broker={b} />
+                    <span
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-block"
+                    >
+                      <BlockButton id={b.id} name={b.name} blocked={b.blocked} />
+                    </span>
                   </Td>
+                  <td className="px-2 py-3 text-right">
+                    <Link
+                      href={`/broker/${b.id}`}
+                      aria-label="Ver broker"
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex text-neutral-300 transition group-hover:text-neutral-600"
+                    >
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="m9 18 6-6-6-6" />
+                      </svg>
+                    </Link>
+                  </td>
                 </tr>
               );
             })}
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-16 text-center text-sm text-neutral-400">
+                <td colSpan={10} className="px-4 py-16 text-center text-sm text-neutral-400">
                   Sin resultados.
                 </td>
               </tr>
@@ -295,42 +326,6 @@ function Td({
     >
       {children}
     </td>
-  );
-}
-
-function BlockCell({ broker }: { broker: BrokerRow }) {
-  const [pending, startTransition] = useTransition();
-
-  function onClick() {
-    if (broker.blocked) {
-      startTransition(async () => {
-        const res = await unblockBroker(broker.id);
-        if (res?.error) alert(res.error);
-      });
-    } else {
-      const ok = window.confirm(
-        `¿Bloquear a ${broker.name ?? "este broker"}?\n\nNo podrá iniciar sesión ni entrar a la app.`,
-      );
-      if (!ok) return;
-      startTransition(async () => {
-        const res = await blockBroker(broker.id);
-        if (res?.error) alert(res.error);
-      });
-    }
-  }
-
-  return (
-    <button
-      onClick={onClick}
-      disabled={pending}
-      className={`rounded-lg px-2.5 py-1 text-xs font-medium ring-1 ring-inset transition disabled:opacity-50 ${
-        broker.blocked
-          ? "text-emerald-700 ring-emerald-200 hover:bg-emerald-50"
-          : "text-rose-600 ring-rose-200 hover:bg-rose-50"
-      }`}
-    >
-      {pending ? "…" : broker.blocked ? "Reactivar" : "Bloquear"}
-    </button>
   );
 }
 
