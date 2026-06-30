@@ -1,22 +1,10 @@
-import { fetchBotMonitor, type BotMonitor, type Capture } from "@/lib/bot";
+import { fetchBotMonitor, type BotMonitor } from "@/lib/bot";
 import { TopNav } from "@/components/TopNav";
+import { CapturesList } from "@/components/CapturesList";
 import { requireRole } from "@/lib/session";
 import { relative } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
-
-const TYPE_LABELS: Record<string, string> = {
-  casa: "Casa",
-  departamento: "Depto",
-  terreno: "Terreno",
-  oficina: "Oficina",
-  local: "Local",
-  bodega: "Bodega",
-  nave: "Nave",
-};
-
-const money = (p: number | null, c: string | null) =>
-  p == null ? null : `$${p.toLocaleString("en-US")}${c ? ` ${c}` : ""}`;
 
 const DAY = 86400000;
 
@@ -40,10 +28,11 @@ export default async function WhatsAppPage() {
     );
   }
 
-  const { captures, kpis, lastCapturedAt } = data;
+  const { captures, byRegion, kpis, lastCapturedAt } = data;
   const ageMs = lastCapturedAt ? Date.now() - new Date(lastCapturedAt).getTime() : null;
   const stale = ageMs == null || ageMs > DAY;
   const lastLabel = relative(lastCapturedAt).label;
+  const maxRegion = Math.max(1, ...byRegion.map((r) => r.total));
 
   return (
     <div className="min-h-screen">
@@ -54,21 +43,19 @@ export default async function WhatsAppPage() {
             WhatsApp · Bot
           </h1>
           <p className="mt-1 text-sm text-neutral-500">
-            Capturas del bot y su promoción al inventario.
+            Capturas del bot por región y su promoción al inventario.
           </p>
         </div>
 
         {/* liveness banner */}
         <div
           className={`mb-6 flex items-center gap-3 rounded-2xl border px-4 py-3 ${
-            stale
-              ? "border-amber-200 bg-amber-50"
-              : "border-emerald-200 bg-emerald-50"
+            stale ? "border-amber-200 bg-amber-50" : "border-emerald-200 bg-emerald-50"
           }`}
         >
           <span
             className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${
-              stale ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
+              stale ? "bg-amber-100" : "bg-emerald-100"
             }`}
           >
             <span className={`h-2.5 w-2.5 rounded-full ${stale ? "bg-amber-500" : "bg-emerald-500"}`} />
@@ -88,28 +75,50 @@ export default async function WhatsAppPage() {
         </div>
 
         {/* KPIs */}
-        <section className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-5">
+        <section className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           <Kpi label="Capturas" value={kpis.total} dot="#1c4588" />
+          <Kpi label="Regiones" value={kpis.regions} dot="#7c3aed" />
           <Kpi label="Promovidas" value={kpis.promoted} dot="#059669" />
           <Kpi label="Pendientes" value={kpis.pending} dot="#d97706" />
           <Kpi label="Ofertas" value={kpis.oferta} dot="#10b981" />
-          <Kpi label="Demandas" value={kpis.demanda} dot="#7c3aed" />
+          <Kpi label="Demandas" value={kpis.demanda} dot="#0e7490" />
+        </section>
+
+        {/* by region */}
+        <section className="mb-8 rounded-2xl border border-black/[0.05] bg-gradient-to-b from-white to-neutral-50/40 p-5 shadow-soft backdrop-blur-sm">
+          <h2 className="mb-4 text-base font-semibold tracking-tight text-neutral-900">
+            Capturas por región
+          </h2>
+          <div className="space-y-1">
+            {byRegion.map((r) => (
+              <div key={r.region} className="flex items-center gap-3 py-1">
+                <div className="w-24 shrink-0 truncate text-sm font-medium text-neutral-700">
+                  {r.region}
+                </div>
+                <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-neutral-100">
+                  <div
+                    className="h-full rounded-full bg-violet-500"
+                    style={{ width: `${(r.total / maxRegion) * 100}%` }}
+                  />
+                </div>
+                <div className="w-8 shrink-0 text-right text-sm font-semibold tabular-nums text-neutral-800">
+                  {r.total}
+                </div>
+                <div className="hidden w-24 shrink-0 text-right text-xs text-neutral-400 sm:block">
+                  {r.promoted} promov.
+                </div>
+                <div className="hidden w-20 shrink-0 text-right text-xs text-neutral-400 sm:block">
+                  {relative(r.lastCapturedAt).label}
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
 
         <h2 className="mb-4 text-base font-semibold tracking-tight text-neutral-900">
           Capturas recientes
         </h2>
-        {captures.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-neutral-200 bg-white/50 py-16 text-center text-sm text-neutral-400">
-            Sin capturas todavía.
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {captures.map((c) => (
-              <CaptureCard key={c.id} c={c} />
-            ))}
-          </div>
-        )}
+        <CapturesList captures={captures} />
       </main>
     </div>
   );
@@ -125,64 +134,6 @@ function Kpi({ label, value, dot }: { label: string; value: number; dot: string 
       <div className="mt-2 text-2xl font-semibold tracking-tight tabular-nums text-neutral-900">
         {value}
       </div>
-    </div>
-  );
-}
-
-function CaptureCard({ c }: { c: Capture }) {
-  const kindMeta =
-    c.kind === "oferta"
-      ? { label: "Oferta", cls: "bg-emerald-50 text-emerald-700 ring-emerald-200" }
-      : c.kind === "demanda"
-        ? { label: "Demanda", cls: "bg-amber-50 text-amber-700 ring-amber-200" }
-        : { label: c.kind ?? "—", cls: "bg-neutral-100 text-neutral-600 ring-neutral-200" };
-  const typeLabel = c.property_type ? (TYPE_LABELS[c.property_type] ?? c.property_type) : null;
-  const sub = [typeLabel, c.operation === "renta" ? "Renta" : c.operation === "venta" ? "Venta" : null, c.location]
-    .filter(Boolean)
-    .join(" · ");
-
-  return (
-    <div className="rounded-2xl border border-black/[0.05] bg-white p-4 shadow-soft">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${kindMeta.cls}`}>
-          {kindMeta.label}
-        </span>
-        {c.promoted ? (
-          <span className="rounded-full bg-brand-light px-2 py-0.5 text-[11px] font-medium text-brand ring-1 ring-inset ring-brand/20">
-            ✓ Promovida a propiedad
-          </span>
-        ) : (
-          <span className="rounded-full bg-neutral-50 px-2 py-0.5 text-[11px] font-medium text-neutral-500 ring-1 ring-inset ring-neutral-200">
-            {c.review_status ?? "sin promover"}
-          </span>
-        )}
-        {c.image_count > 0 ? (
-          <span className="text-[11px] text-neutral-400">📷 {c.image_count}</span>
-        ) : null}
-        <span className="ml-auto text-xs text-neutral-400">{relative(c.captured_at).label}</span>
-      </div>
-
-      <p className="mt-2 font-medium text-neutral-900">{c.title ?? "Sin título extraído"}</p>
-      <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm">
-        {money(c.price, c.currency) ? (
-          <span className="font-semibold tabular-nums text-neutral-800">
-            {money(c.price, c.currency)}
-          </span>
-        ) : null}
-        {sub ? <span className="text-neutral-400">{sub}</span> : null}
-      </div>
-
-      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-neutral-400">
-        {c.group_name ? <span>{c.group_name}</span> : null}
-        {c.sender_name ? <span>· {c.sender_name}</span> : null}
-        {c.contact_phone ? <span className="font-mono">· {c.contact_phone}</span> : null}
-      </div>
-
-      {c.body_preview ? (
-        <p className="mt-2 line-clamp-2 rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-500">
-          {c.body_preview}…
-        </p>
-      ) : null}
     </div>
   );
 }
