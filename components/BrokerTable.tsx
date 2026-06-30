@@ -84,7 +84,7 @@ export function BrokerTable({ brokers }: { brokers: BrokerRow[] }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-black/[0.06] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-12px_rgba(16,24,40,0.12)]">
+    <div className="overflow-hidden rounded-2xl border border-black/[0.05] bg-white/90 shadow-soft backdrop-blur-sm">
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-3 border-b border-neutral-100 px-4 py-3">
         <div className="relative w-full max-w-xs">

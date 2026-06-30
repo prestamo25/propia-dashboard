@@ -33,3 +33,15 @@ export async function unblockBroker(id: string): Promise<Result> {
   revalidatePath("/");
   return {};
 }
+
+export async function setReportStatus(
+  id: string,
+  status: "open" | "actioned" | "dismissed",
+): Promise<Result> {
+  if (!id) return { error: "Falta el id." };
+  const sb = supabaseAdmin();
+  const { error } = await sb.from("reports").update({ status }).eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/reportes");
+  return {};
+}

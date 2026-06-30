@@ -44,8 +44,8 @@ export default async function BrokerPage({
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(120%_120%_at_50%_-20%,#ffffff_0%,#f5f7fa_55%,#eef1f6_100%)]">
-      <header className="sticky top-0 z-20 border-b border-black/[0.06] bg-white/70 backdrop-blur-xl">
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-20 border-b border-black/[0.05] bg-white/65 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           <Link
             href="/"
@@ -67,7 +67,7 @@ export default async function BrokerPage({
 
       <main className="mx-auto max-w-6xl px-6 py-8">
         {/* Profile header */}
-        <div className="mb-8 rounded-2xl border border-black/[0.06] bg-white/80 p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-14px_rgba(16,24,40,0.14)] backdrop-blur-sm">
+        <div className="mb-8 rounded-2xl border border-black/[0.05] bg-gradient-to-b from-white to-neutral-50/40 p-6 shadow-soft backdrop-blur-sm">
           <div className="flex flex-wrap items-start gap-5">
             <span
               className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl text-xl font-semibold"
@@ -152,7 +152,7 @@ function Meta({ label, children }: { label: string; children: React.ReactNode })
 function ListingCard({ listing: l }: { listing: Listing }) {
   const typeLabel = l.type ? (TYPE_LABELS[l.type] ?? l.type) : null;
   return (
-    <div className="overflow-hidden rounded-2xl border border-black/[0.06] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-16px_rgba(16,24,40,0.14)] transition hover:-translate-y-0.5 hover:shadow-[0_1px_2px_rgba(16,24,40,0.05),0_14px_30px_-16px_rgba(16,24,40,0.22)]">
+    <div className="overflow-hidden rounded-2xl border border-black/[0.05] bg-white shadow-soft transition duration-200 hover:-translate-y-0.5 hover:shadow-lift">
       <div className="relative aspect-[4/3] bg-neutral-100">
         {l.thumb_url ? (
           // eslint-disable-next-line @next/next/no-img-element

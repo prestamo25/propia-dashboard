@@ -1,5 +1,6 @@
 import { fetchOverview } from "@/lib/data";
 import { BrokerTable } from "@/components/BrokerTable";
+import { TopNav } from "@/components/TopNav";
 
 // Always fetch fresh — this is an ops view, never cache it.
 export const dynamic = "force-dynamic";
@@ -25,31 +26,8 @@ export default async function DashboardPage() {
   const { brokers, totals } = data;
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(120%_120%_at_50%_-20%,#ffffff_0%,#f5f7fa_55%,#eef1f6_100%)]">
-      {/* Frosted top bar */}
-      <header className="sticky top-0 z-20 border-b border-black/[0.06] bg-white/70 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-2.5">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-sm font-bold text-white shadow-sm">
-              P
-            </span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-[15px] font-semibold tracking-tight text-neutral-900">
-                Propia
-              </span>
-              <span className="rounded-md bg-neutral-100 px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-neutral-500">
-                Admin
-              </span>
-            </div>
-          </div>
-          <a
-            href="/api/logout"
-            className="rounded-lg px-3 py-1.5 text-sm font-medium text-neutral-500 ring-1 ring-neutral-200 transition hover:bg-white hover:text-neutral-800"
-          >
-            Salir
-          </a>
-        </div>
-      </header>
+    <div className="min-h-screen">
+      <TopNav active="brokers" />
 
       <main className="mx-auto max-w-7xl px-6 py-8">
         <div className="mb-6">
@@ -133,9 +111,9 @@ function StatCard({
   tint: { bg: string; fg: string };
 }) {
   return (
-    <div className="rounded-2xl border border-black/[0.06] bg-white/80 p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-14px_rgba(16,24,40,0.14)] backdrop-blur-sm transition hover:-translate-y-0.5 hover:shadow-[0_1px_2px_rgba(16,24,40,0.05),0_14px_32px_-14px_rgba(16,24,40,0.22)]">
+    <div className="group rounded-2xl border border-black/[0.05] bg-gradient-to-b from-white to-neutral-50/40 p-5 shadow-soft backdrop-blur-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lift">
       <span
-        className="grid h-9 w-9 place-items-center rounded-xl"
+        className="grid h-9 w-9 place-items-center rounded-xl ring-1 ring-black/[0.04] transition group-hover:scale-105"
         style={{ background: tint.bg, color: tint.fg }}
       >
         <svg
