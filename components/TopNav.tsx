@@ -5,7 +5,7 @@ import { getRole } from "@/lib/session";
 export async function TopNav({
   active,
 }: {
-  active: "brokers" | "panorama" | "reportes";
+  active: "brokers" | "panorama" | "reportes" | "whatsapp";
 }) {
   const [openReports, role] = await Promise.all([countOpenReports(), getRole()]);
   const isDev = role === "dev";
@@ -13,7 +13,7 @@ export async function TopNav({
   const tab = (
     href: string,
     label: string,
-    key: "brokers" | "panorama" | "reportes",
+    key: "brokers" | "panorama" | "reportes" | "whatsapp",
     badge?: number,
   ) => (
     <Link
@@ -61,6 +61,12 @@ export async function TopNav({
             {tab("/", "Brokers", "brokers")}
             {tab("/panorama", "Panorama", "panorama")}
             {tab("/reportes", "Reportes", "reportes", openReports)}
+            {isDev ? (
+              <>
+                <span className="mx-1 h-4 w-px bg-neutral-300/70" />
+                {tab("/whatsapp", "WhatsApp", "whatsapp")}
+              </>
+            ) : null}
           </nav>
         </div>
         <a
