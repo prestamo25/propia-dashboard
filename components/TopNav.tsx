@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { countOpenReports } from "@/lib/reports";
+import { getRole } from "@/lib/session";
 
 export async function TopNav({
   active,
 }: {
   active: "brokers" | "panorama" | "reportes";
 }) {
-  const openReports = await countOpenReports();
+  const [openReports, role] = await Promise.all([countOpenReports(), getRole()]);
+  const isDev = role === "dev";
 
   const tab = (
     href: string,
@@ -43,7 +45,16 @@ export async function TopNav({
               className="h-8 w-8 rounded-xl shadow-sm ring-1 ring-black/[0.06]"
             />
             <span className="text-[15px] font-semibold tracking-tight text-neutral-900">
-              Propia <span className="font-normal text-neutral-400">Admin</span>
+              Propia
+            </span>
+            <span
+              className={`rounded-md px-1.5 py-0.5 text-[11px] font-medium ${
+                isDev
+                  ? "bg-violet-100 text-violet-700"
+                  : "bg-neutral-100 text-neutral-500"
+              }`}
+            >
+              {isDev ? "Técnico" : "Admin"}
             </span>
           </div>
           <nav className="flex items-center gap-1 rounded-xl bg-neutral-200/40 p-1">

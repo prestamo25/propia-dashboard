@@ -1,9 +1,21 @@
-// Minimal stateless session for the shared-password gate. The cookie holds an
-// HMAC over a constant, keyed by SESSION_SECRET — so it can't be forged without
-// the secret, and being httpOnly it can't be read by client JS. No DB, no
-// per-user accounts (yet); see README for the upgrade path.
+// Stateless role-aware session for the password-per-role gate. The cookie holds
+// "<role>.<hmac>", where the HMAC (keyed by SESSION_SECRET) is computed over the
+// role itself — so the role can't be tampered with, and being httpOnly it can't
+// be read by client JS. Two roles today:
+//   • admin  — Pablo / business: Brokers · Panorama · Reportes
+//   • dev    — técnico (superuser): everything above + technical screens
+// Each role has its own password (ADMIN_PASSWORD / DEV_PASSWORD).
 
 export const SESSION_COOKIE = "padmin";
+
+export type Role = "admin" | "dev";
+const ROLES: Role[] = ["admin", "dev"];
+
+// dev is a superset of admin (tiered access).
+export function roleCan(role: Role, needs: Role): boolean {
+  if (role === "dev") return true; // superuser
+  return role === needs;
+}
 
 const encoder = new TextEncoder();
 
@@ -23,27 +35,31 @@ function toHex(buf: ArrayBuffer): string {
     .join("");
 }
 
-// Deterministic token: only a holder of SESSION_SECRET can produce it.
-export async function createSessionToken(secret: string): Promise<string> {
-  const sig = await crypto.subtle.sign(
-    "HMAC",
-    await hmacKey(secret),
-    encoder.encode("propia-admin:v1"),
-  );
+async function sign(secret: string, msg: string): Promise<string> {
+  const sig = await crypto.subtle.sign("HMAC", await hmacKey(secret), encoder.encode(msg));
   return toHex(sig);
 }
 
-// Constant-time-ish comparison so verification doesn't leak via timing.
+export async function createSessionToken(role: Role, secret: string): Promise<string> {
+  const sig = await sign(secret, `propia-admin:v2:${role}`);
+  return `${role}.${sig}`;
+}
+
+// Returns the role if the token is valid, else null. Constant-time compare.
 export async function verifySessionToken(
   token: string | undefined,
   secret: string,
-): Promise<boolean> {
-  if (!token) return false;
-  const expected = await createSessionToken(secret);
-  if (token.length !== expected.length) return false;
+): Promise<Role | null> {
+  if (!token) return null;
+  const dot = token.indexOf(".");
+  if (dot < 0) return null;
+  const role = token.slice(0, dot) as Role;
+  const sig = token.slice(dot + 1);
+  if (!ROLES.includes(role)) return null;
+
+  const expected = await sign(secret, `propia-admin:v2:${role}`);
+  if (sig.length !== expected.length) return null;
   let diff = 0;
-  for (let i = 0; i < token.length; i++) {
-    diff |= token.charCodeAt(i) ^ expected.charCodeAt(i);
-  }
-  return diff === 0;
+  for (let i = 0; i < sig.length; i++) diff |= sig.charCodeAt(i) ^ expected.charCodeAt(i);
+  return diff === 0 ? role : null;
 }
